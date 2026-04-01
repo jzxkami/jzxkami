@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance Agent 可视化分析台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=ZCOOL+XiaoWei&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="bg-layer bg-one"></div>
+    <div class="bg-layer bg-two"></div>
+
+    <main class="page">
+      <header class="hero card">
+        <p class="hero-kicker">Finance Agent Dashboard</p>
+        <h1>股票分析可视化工作台</h1>
+        <p>
+          输入任意股票代码，系统会动态拉取行情、生成结构化 AI 结论，并输出可访问的 K 线图。
+        </p>
+      </header>
+
+      <section class="layout">
+        <aside class="panel card">
+          <h2>查询参数</h2>
+          <form id="analyze-form">
+            <label>
+              股票代码
+              <input id="stock-code" type="text" value="600519.SH" placeholder="例如 600519.SH" required />
+            </label>
+
+            <label>
+              股票名称（可选）
+              <input id="stock-name" type="text" placeholder="不填则自动查询" />
+            </label>
+
+            <label>
+              回看交易日
+              <input id="lookback-days" type="number" min="5" max="120" value="20" />
+            </label>
+
+            <label class="checkbox">
+              <input id="include-chart" type="checkbox" checked />
+              <span>生成 K 线图</span>
+            </label>
+
+            <button id="submit-btn" type="submit">开始分析</button>
+          </form>
+
+          <div class="quick-row">
+            <button class="quick" data-code="600519.SH">贵州茅台</button>
+            <button class="quick" data-code="000001.SZ">平安银行</button>
+            <button class="quick" data-code="300750.SZ">宁德时代</button>
+          </div>
+
+          <p id="status" class="status idle">等待输入...</p>
+        </aside>
+
+        <section class="result card" id="result-panel">
+          <div class="result-head">
+            <h2 id="result-title">尚未执行分析</h2>
+            <p id="result-time">-</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <h3>价格趋势</h3>
+              <p id="trend-text">-</p>
+            </article>
+            <article class="insight-card">
+              <h3>波动情况</h3>
+              <p id="volatility-text">-</p>
+            </article>
+            <article class="insight-card">
+              <h3>投资建议</h3>
+              <p id="advice-text">-</p>
+            </article>
+            <article class="insight-card">
+              <h3>风险评估</h3>
+              <p id="risk-text">-</p>
+            </article>
+          </div>
+
+          <div class="metric-grid" id="metric-grid"></div>
+
+          <div class="chart-wrap" id="chart-wrap" hidden>
+            <div class="chart-head">
+              <h3>K 线图</h3>
+              <a id="chart-link" href="#" target="_blank" rel="noreferrer">在新窗口查看</a>
+            </div>
+            <img id="chart-image" alt="K线图" />
+          </div>
+
+          <div class="cache-box">
+            <h3>缓存状态</h3>
+            <p id="cache-text">-</p>
+          </div>
+
+          <div id="warnings-box" class="warnings" hidden></div>
+
+          <details>
+            <summary>查看原始 JSON</summary>
+            <pre id="raw-json">{}</pre>
+          </details>
+        </section>
+      </section>
+    </main>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

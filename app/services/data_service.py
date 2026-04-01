@@ -1,17 +1,29 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
 import pandas as pd
 import tushare as ts
 
 from app.config import get_settings
 from app.schemas import PriceSummary
+from app.services.ttl_cache import TTLCache
 
 
 class MarketDataService:
     def __init__(self) -> None:
         self._pro = None
+        settings = get_settings()
+
+        self._daily_cache: TTLCache[tuple[str, int, str], pd.DataFrame] = TTLCache(
+            ttl_seconds=settings.daily_cache_ttl_seconds,
+            maxsize=settings.daily_cache_maxsize,
+        )
+        self._stock_name_cache: TTLCache[str, str] = TTLCache(
+            ttl_seconds=settings.stock_name_cache_ttl_seconds,
+            maxsize=settings.stock_name_cache_maxsize,
+        )
 
     def _ensure_client(self):
         settings = get_settings()
@@ -19,14 +31,40 @@ class MarketDataService:
             raise RuntimeError("未读取到 TUSHARE_TOKEN，请在 .env 或环境变量中配置后重试")
 
         if self._pro is None:
-            ts.set_token(settings.tushare_token)
-            self._pro = ts.pro_api()
+            # 直接传 token，避免 set_token 写入用户目录文件（tk.csv）引发权限问题。
+            self._pro = ts.pro_api(settings.tushare_token)
         return self._pro
 
-    def fetch_recent_daily(self, stock_code: str, lookback_days: int) -> pd.DataFrame:
-        pro = self._ensure_client()
+    def resolve_stock_name_with_cache(self, stock_code: str) -> tuple[str, bool]:
+        hit, cached_name = self._stock_name_cache.get(stock_code)
+        if hit and cached_name:
+            return cached_name, True
 
+        resolved = stock_code
+        try:
+            pro = self._ensure_client()
+            df = pro.stock_basic(ts_code=stock_code, fields="ts_code,name")
+            if df is not None and not df.empty and "name" in df.columns:
+                resolved = str(df.iloc[0]["name"]) or stock_code
+        except Exception:
+            resolved = stock_code
+
+        self._stock_name_cache.set(stock_code, resolved)
+        return resolved, False
+
+    def resolve_stock_name(self, stock_code: str) -> str:
+        name, _ = self.resolve_stock_name_with_cache(stock_code)
+        return name
+
+    def fetch_recent_daily_with_cache(self, stock_code: str, lookback_days: int) -> tuple[pd.DataFrame, bool]:
         end_date = dt.date.today()
+        cache_key = (stock_code, lookback_days, end_date.strftime("%Y%m%d"))
+
+        hit, cached_df = self._daily_cache.get(cache_key)
+        if hit and cached_df is not None:
+            return cached_df.copy(deep=True), True
+
+        pro = self._ensure_client()
         start_date = end_date - dt.timedelta(days=max(lookback_days * 3, 30))
 
         df = pro.daily(
@@ -42,7 +80,18 @@ class MarketDataService:
         if len(df) > lookback_days:
             df = df.tail(lookback_days).reset_index(drop=True)
 
+        self._daily_cache.set(cache_key, df)
+        return df.copy(deep=True), False
+
+    def fetch_recent_daily(self, stock_code: str, lookback_days: int) -> pd.DataFrame:
+        df, _ = self.fetch_recent_daily_with_cache(stock_code, lookback_days)
         return df
+
+    def get_cache_stats(self) -> dict[str, Any]:
+        return {
+            "daily": self._daily_cache.stats(),
+            "stock_name": self._stock_name_cache.stats(),
+        }
 
     @staticmethod
     def build_price_summary(df: pd.DataFrame) -> PriceSummary:

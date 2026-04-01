@@ -10,4 +10,5 @@ __pycache__/
 venv/
 fin_env/
 trend.png
+outputs/
 .DS_Store
