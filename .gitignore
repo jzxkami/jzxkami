@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.env
+.venv/
+venv/
+fin_env/
+trend.png
+.DS_Store
