@@ -12,3 +12,8 @@ fin_env/
 trend.png
 outputs/
 .DS_Store
+
+data/
+*.db
+
+deploy/generated/*

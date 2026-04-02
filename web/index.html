@@ -20,15 +20,18 @@
       <header class="hero card">
         <p class="hero-kicker">Finance Agent Dashboard</p>
         <h1>股票分析可视化工作台</h1>
-        <p>
-          输入任意股票代码，系统会动态拉取行情、生成结构化 AI 结论，并输出可访问的 K 线图。
-        </p>
+        <p>输入任意股票代码，系统会动态拉取行情、检索相关新闻（RAG）并生成结论与 K 线图。</p>
       </header>
 
       <section class="layout">
         <aside class="panel card">
           <h2>查询参数</h2>
           <form id="analyze-form">
+            <label>
+              访问令牌（Bearer Token）
+              <input id="auth-token" type="text" placeholder="先登录 /auth/login，再把 access_token 粘贴到这里" />
+            </label>
+
             <label>
               股票代码
               <input id="stock-code" type="text" value="600519.SH" placeholder="例如 600519.SH" required />
@@ -43,6 +46,27 @@
               回看交易日
               <input id="lookback-days" type="number" min="5" max="120" value="20" />
             </label>
+
+            <label class="checkbox">
+              <input id="include-news" type="checkbox" checked />
+              <span>启用新闻 RAG</span>
+            </label>
+
+            <div class="news-params">
+              <p class="param-title">新闻参数（可选，留空走默认）</p>
+              <label>
+                新闻时间窗（小时）
+                <input id="news-lookback-hours" type="number" min="6" max="720" placeholder="例如 168" />
+              </label>
+              <label>
+                注入条数 Top-K
+                <input id="news-top-k" type="number" min="1" max="20" placeholder="例如 8" />
+              </label>
+              <label>
+                拉取上限 Fetch Limit
+                <input id="news-fetch-limit" type="number" min="20" max="500" placeholder="例如 300" />
+              </label>
+            </div>
 
             <label class="checkbox">
               <input id="include-chart" type="checkbox" checked />
@@ -94,6 +118,19 @@
               <a id="chart-link" href="#" target="_blank" rel="noreferrer">在新窗口查看</a>
             </div>
             <img id="chart-image" alt="K线图" />
+          </div>
+
+          <div class="news-box" id="news-box" hidden>
+            <div class="news-head">
+              <h3>新闻证据（RAG）</h3>
+              <span id="news-count">0 条</span>
+            </div>
+            <div id="news-list"></div>
+          </div>
+
+          <div class="news-debug" id="news-debug" hidden>
+            <h3>新闻调试信息</h3>
+            <p id="news-debug-text">-</p>
           </div>
 
           <div class="cache-box">

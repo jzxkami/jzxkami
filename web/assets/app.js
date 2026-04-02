@@ -1,8 +1,13 @@
 const form = document.getElementById("analyze-form");
+const authTokenInput = document.getElementById("auth-token");
 const stockCodeInput = document.getElementById("stock-code");
 const stockNameInput = document.getElementById("stock-name");
 const lookbackInput = document.getElementById("lookback-days");
+const includeNewsInput = document.getElementById("include-news");
 const includeChartInput = document.getElementById("include-chart");
+const newsLookbackInput = document.getElementById("news-lookback-hours");
+const newsTopKInput = document.getElementById("news-top-k");
+const newsFetchLimitInput = document.getElementById("news-fetch-limit");
 const statusEl = document.getElementById("status");
 const submitBtn = document.getElementById("submit-btn");
 
@@ -19,18 +24,14 @@ const chartLink = document.getElementById("chart-link");
 const cacheText = document.getElementById("cache-text");
 const warningsBox = document.getElementById("warnings-box");
 const rawJson = document.getElementById("raw-json");
+const newsBox = document.getElementById("news-box");
+const newsList = document.getElementById("news-list");
+const newsCount = document.getElementById("news-count");
+const newsDebugBox = document.getElementById("news-debug");
+const newsDebugText = document.getElementById("news-debug-text");
 
-const trendMap = {
-  up: "上涨",
-  down: "下跌",
-  sideways: "震荡",
-};
-
-const riskMap = {
-  low: "低",
-  medium: "中",
-  high: "高",
-};
+const trendMap = { up: "上涨", down: "下跌", sideways: "震荡" };
+const riskMap = { low: "低", medium: "中", high: "高" };
 
 function setStatus(text, type = "idle") {
   statusEl.textContent = text;
@@ -40,6 +41,14 @@ function setStatus(text, type = "idle") {
 function fmtNum(value) {
   if (typeof value !== "number") return "-";
   return Number(value).toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+}
+
+function parseOptionalInt(inputEl) {
+  const raw = (inputEl?.value || "").trim();
+  if (!raw) return null;
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return null;
+  return Math.trunc(num);
 }
 
 function renderMetrics(summary) {
@@ -56,10 +65,7 @@ function renderMetrics(summary) {
   ];
 
   metricGrid.innerHTML = items
-    .map(
-      ([label, value]) =>
-        `<div class="metric-item"><strong>${label}</strong><span>${value}</span></div>`,
-    )
+    .map(([label, value]) => `<div class="metric-item"><strong>${label}</strong><span>${value}</span></div>`)
     .join("");
 }
 
@@ -69,8 +75,19 @@ function renderCache(cacheInfo) {
     return;
   }
 
-  cacheText.textContent = `行情缓存: ${cacheInfo.daily_hit ? "命中" : "未命中"}（累计命中 ${cacheInfo.daily_hits_total} / 未命中 ${cacheInfo.daily_misses_total}）；` +
-    `名称缓存: ${cacheInfo.stock_name_hit ? "命中" : "未命中"}（累计命中 ${cacheInfo.stock_name_hits_total} / 未命中 ${cacheInfo.stock_name_misses_total}）`;
+  const newsLine = cacheInfo.news_hit == null
+    ? ""
+    : `；新闻缓存: ${cacheInfo.news_hit ? "命中" : "未命中"}（累计命中 ${cacheInfo.news_hits_total} / 未命中 ${cacheInfo.news_misses_total}）`;
+
+  const newsFallbackLine = cacheInfo.news_stale_fallback_used == null
+    ? ""
+    : `；新闻兜底: ${cacheInfo.news_stale_fallback_used ? "已使用最近缓存" : "未使用"}`;
+
+  cacheText.textContent =
+    `行情缓存: ${cacheInfo.daily_hit ? "命中" : "未命中"}（累计命中 ${cacheInfo.daily_hits_total} / 未命中 ${cacheInfo.daily_misses_total}）` +
+    `；名称缓存: ${cacheInfo.stock_name_hit ? "命中" : "未命中"}（累计命中 ${cacheInfo.stock_name_hits_total} / 未命中 ${cacheInfo.stock_name_misses_total}）` +
+    newsLine +
+    newsFallbackLine;
 }
 
 function renderWarnings(warnings = []) {
@@ -81,6 +98,54 @@ function renderWarnings(warnings = []) {
   }
   warningsBox.hidden = false;
   warningsBox.innerHTML = warnings.map((w) => `<div>• ${w}</div>`).join("");
+}
+
+function renderNews(items = []) {
+  if (!items.length) {
+    newsBox.hidden = true;
+    newsCount.textContent = "0 条";
+    newsList.innerHTML = "";
+    return;
+  }
+
+  newsBox.hidden = false;
+  newsCount.textContent = `${items.length} 条`;
+  newsList.innerHTML = items
+    .map((x) => {
+      const title = x.url
+        ? `<a href="${x.url}" target="_blank" rel="noreferrer">${x.title}</a>`
+        : `<span>${x.title}</span>`;
+      return `
+        <article class="news-item">
+          <div class="news-meta">${x.pub_time} · ${x.source}${x.relevance != null ? ` · 相关度 ${x.relevance}` : ""}</div>
+          <div>${title}</div>
+          <div class="news-snippet">${x.snippet || ""}</div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderNewsDebug(debugInfo) {
+  if (!debugInfo || !debugInfo.requested) {
+    newsDebugBox.hidden = true;
+    newsDebugText.textContent = "-";
+    return;
+  }
+
+  const lines = [
+    `时间窗: ${debugInfo.effective_lookback_hours ?? "-"} 小时`,
+    `Top-K: ${debugInfo.effective_top_k ?? "-"}`,
+    `Fetch Limit: ${debugInfo.effective_fetch_limit ?? "-"}`,
+    `major_news 命中条数: ${debugInfo.major_count ?? 0}`,
+    `news 命中条数: ${debugInfo.news_count ?? 0}`,
+    `最终选中条数: ${debugInfo.selected_count ?? 0}`,
+    `缓存命中: ${debugInfo.cache_hit ? "是" : "否"}`,
+    `是否兜底: ${debugInfo.stale_fallback_used ? "是" : "否"}`,
+  ];
+
+  newsDebugBox.hidden = false;
+  newsDebugText.textContent = lines.join("；");
 }
 
 function renderResult(data) {
@@ -97,6 +162,8 @@ function renderResult(data) {
 
   renderMetrics(summary);
   renderCache(data.cache_info);
+  renderNews(data.news_items || []);
+  renderNewsDebug(data.news_debug);
   renderWarnings(data.warnings);
 
   if (data.chart_url) {
@@ -122,22 +189,31 @@ function normalizePayload() {
     stock_code: stockCode,
     stock_name: stockName || null,
     lookback_days: Number.isFinite(lookbackDays) ? lookbackDays : 20,
-    include_news: false,
+    include_news: includeNewsInput.checked,
     include_chart: includeChartInput.checked,
+    news_lookback_hours: parseOptionalInt(newsLookbackInput),
+    news_top_k: parseOptionalInt(newsTopKInput),
+    news_fetch_limit: parseOptionalInt(newsFetchLimitInput),
   };
 }
 
 async function analyzeStock(evt) {
   evt.preventDefault();
   const payload = normalizePayload();
+  const token = (authTokenInput?.value || "").trim();
 
   setStatus("正在分析中，请稍候...", "loading");
   submitBtn.disabled = true;
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch("/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
 

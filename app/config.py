@@ -22,6 +22,15 @@ class Settings:
     daily_cache_maxsize: int
     stock_name_cache_ttl_seconds: int
     stock_name_cache_maxsize: int
+    news_cache_ttl_seconds: int
+    news_cache_maxsize: int
+    news_stale_cache_ttl_seconds: int
+    news_stale_cache_maxsize: int
+    news_lookback_hours: int
+    news_top_k: int
+    news_fetch_limit: int
+    auth_db_path: str
+    auth_token_ttl_hours: int
 
 
 @lru_cache(maxsize=1)
@@ -38,4 +47,13 @@ def get_settings() -> Settings:
         daily_cache_maxsize=int(os.getenv("DAILY_CACHE_MAXSIZE", "256")),
         stock_name_cache_ttl_seconds=int(os.getenv("STOCK_NAME_CACHE_TTL_SECONDS", "86400")),
         stock_name_cache_maxsize=int(os.getenv("STOCK_NAME_CACHE_MAXSIZE", "1024")),
+        news_cache_ttl_seconds=int(os.getenv("NEWS_CACHE_TTL_SECONDS", "1800")),
+        news_cache_maxsize=int(os.getenv("NEWS_CACHE_MAXSIZE", "512")),
+        news_stale_cache_ttl_seconds=int(os.getenv("NEWS_STALE_CACHE_TTL_SECONDS", "604800")),
+        news_stale_cache_maxsize=int(os.getenv("NEWS_STALE_CACHE_MAXSIZE", "512")),
+        news_lookback_hours=int(os.getenv("NEWS_LOOKBACK_HOURS", "48")),
+        news_top_k=int(os.getenv("NEWS_TOP_K", "5")),
+        news_fetch_limit=int(os.getenv("NEWS_FETCH_LIMIT", "120")),
+        auth_db_path=os.getenv("AUTH_DB_PATH", "data/auth.db").strip() or "data/auth.db",
+        auth_token_ttl_hours=int(os.getenv("AUTH_TOKEN_TTL_HOURS", "24")),
     )

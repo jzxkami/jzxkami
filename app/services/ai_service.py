@@ -14,6 +14,7 @@ class AIService:
         settings = get_settings()
         self.model = settings.ollama_model
         self.temperature = settings.llm_temperature
+        self.client = ollama.Client(host=settings.ollama_host)
 
     def analyze(
         self,
@@ -27,7 +28,7 @@ class AIService:
 
         raw = ""
         try:
-            response = ollama.generate(
+            response = self.client.generate(
                 model=self.model,
                 prompt=prompt,
                 format="json",

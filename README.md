@@ -4,10 +4,11 @@
 
 ## 项目亮点
 - 可视化前端页面：输入股票代码后直接展示分析结果与 K 线图，不用 Swagger。
+- 注册登录鉴权：支持用户注册、登录、`Bearer Token` 鉴权，`/analyze` 需登录后访问。
 - 动态查询任意股票：按 `stock_code` 实时拉取行情，不是预设股票。
-- 结构化输出：LLM 结果强制 JSON，前端可直接渲染。
+- 新闻 RAG 生效：`include_news=true` 时检索新闻并回传证据列表。
+- 新闻降级兜底：新闻接口限流/权限不足时返回明确 warning，并尝试回退到最近缓存新闻。
 - 内存缓存优化（TTL）：同日同参数重复查询直接命中缓存，减少 Tushare 调用次数。
-- 服务化落地：从本地脚本升级为 REST API，可被多端调用。
 
 ## 目录结构
 
@@ -20,23 +21,24 @@
 │   └── services
 │       ├── analyzer.py
 │       ├── ai_service.py
+│       ├── auth_service.py
 │       ├── data_service.py
+│       ├── news_service.py
 │       ├── chart_service.py
 │       └── ttl_cache.py
+├── deploy
+│   ├── README.md
+│   ├── systemd/
+│   ├── nginx/
+│   └── scripts/
 ├── web
 │   ├── index.html
 │   └── assets
-│       ├── styles.css
-│       └── app.js
-├── Finance_Agent.py
 ├── tests
-│   ├── test_schema.py
-│   └── test_ttl_cache.py
-├── requirements.txt
 └── .env.example
 ```
 
-## 快速开始
+## 本地启动
 
 1. 安装依赖
 ```bash
@@ -47,54 +49,57 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 ```
-填写 `TUSHARE_TOKEN`。
+至少填写：
+- `TUSHARE_TOKEN`
+- `OLLAMA_HOST`（默认 `http://localhost:11434`）
 
 3. 启动服务
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-## 可视化页面
-
-启动后直接打开：
+4. 打开页面
 ```text
 http://127.0.0.1:8000/
 ```
 
-页面会调用 `/analyze`，并在返回 `chart_url` 时直接渲染 K 线图。
+## API 使用流程（先登录，再分析）
 
-## API 示例
-
-### 健康检查
+1. 注册
 ```bash
-curl http://127.0.0.1:8000/health
+curl -X POST http://127.0.0.1:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo_user","password":"demo123456"}'
 ```
 
-### 分析接口（动态股票 + K 线图 + 缓存信息）
+2. 登录（拿到 `access_token`）
+```bash
+curl -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo_user","password":"demo123456"}'
+```
+
+3. 调分析接口（必须带 Bearer）
 ```bash
 curl -X POST http://127.0.0.1:8000/analyze \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <你的access_token>" \
   -d '{
     "stock_code": "600519.SH",
-    "lookback_days": 20,
-    "include_news": false,
-    "include_chart": true
+    "include_news": true,
+    "include_chart": true,
+    "news_lookback_hours": 168,
+    "news_top_k": 8,
+    "news_fetch_limit": 300
   }'
 ```
 
-返回示例（节选）：
-```json
-{
-  "stock_code": "600519.SH",
-  "stock_name": "贵州茅台",
-  "chart_url": "/charts/600519.SH_20260401_234507.png",
-  "cache_info": {
-    "daily_hit": true,
-    "stock_name_hit": true,
-    "daily_hits_total": 1,
-    "daily_misses_total": 1,
-    "stock_name_hits_total": 1,
-    "stock_name_misses_total": 1
-  }
-}
-```
+## 云端部署（Ubuntu 22.04）
+
+完整步骤见：
+- [deploy/README.md](/Users/jzxkami/Desktop/AI_Project/deploy/README.md)
+
+部署方式：
+- `systemd` 托管 `uvicorn`
+- `nginx` 反向代理
+- 可选 `certbot` 开 HTTPS
