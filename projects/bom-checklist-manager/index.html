@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>功能 BOM 与测试清单管理器</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="kicker">BOM Checklist Manager</p>
+          <h1>功能 BOM 与测试清单管理器</h1>
+          <p>把小程序功能拆成标准清单，统一管理模块、字段、依赖、负责人、状态和验收点。</p>
+        </div>
+        <button id="exportBtn">导出项目文档</button>
+      </header>
+
+      <section class="metrics">
+        <article>
+          <span>模块总数</span>
+          <strong id="totalCount">0</strong>
+        </article>
+        <article>
+          <span>已完成</span>
+          <strong id="doneCount">0</strong>
+        </article>
+        <article>
+          <span>待确认</span>
+          <strong id="todoCount">0</strong>
+        </article>
+        <article>
+          <span>完成率</span>
+          <strong id="rateText">0%</strong>
+        </article>
+      </section>
+
+      <section class="grid">
+        <form id="bomForm" class="card form-card">
+          <h2>新增功能 BOM</h2>
+          <label>
+            所属模块
+            <input id="moduleName" value="闲置交易" required />
+          </label>
+          <label>
+            子功能
+            <input id="featureName" value="发布商品" required />
+          </label>
+          <label>
+            页面 / 入口
+            <input id="pageName" value="发布页" required />
+          </label>
+          <label>
+            数据字段
+            <input id="fields" value="标题、价格、图片、分类、联系方式" required />
+          </label>
+          <label>
+            依赖关系
+            <input id="dependency" value="登录、校园认证、图片上传" />
+          </label>
+          <label>
+            测试点
+            <input id="testPoint" value="必填校验、图片上传、发布成功、失败提示" />
+          </label>
+          <label>
+            状态
+            <select id="status">
+              <option value="待确认">待确认</option>
+              <option value="开发中">开发中</option>
+              <option value="已完成">已完成</option>
+            </select>
+          </label>
+          <button type="submit">加入清单</button>
+        </form>
+
+        <section class="card table-card">
+          <div class="card-head">
+            <h2>功能 BOM 清单</h2>
+            <div class="actions">
+              <button class="ghost" id="loadDemoBtn">载入示例</button>
+              <button class="ghost danger" id="clearBtn">清空</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>模块</th>
+                  <th>子功能</th>
+                  <th>页面</th>
+                  <th>字段</th>
+                  <th>依赖</th>
+                  <th>测试点</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="bomBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="card doc-card">
+        <h2>自动生成的 SOP</h2>
+        <ol id="sopList"></ol>
+      </section>
+    </main>
+
+    <script src="./assets/app.js"></script>
+  </body>
+</html>

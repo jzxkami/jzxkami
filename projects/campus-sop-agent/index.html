@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>校园小程序需求拆解与 SOP 生成器</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Campus SOP Agent</p>
+          <h1>校园小程序需求拆解与 SOP 生成器</h1>
+          <p class="hero-text">
+            面向校园小程序项目复盘，将模糊需求拆解为功能模块、执行流程、测试清单、Prompt 模板和简历项目描述。
+          </p>
+        </div>
+        <div class="hero-card">
+          <span>适配方向</span>
+          <strong>服务产品实习生 / AI Agent / Prompt / SOP</strong>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel input-panel">
+          <h2>输入需求</h2>
+          <label>
+            项目场景
+            <select id="scene">
+              <option value="campus">校园生活服务小程序</option>
+              <option value="idle">校园闲置交易</option>
+              <option value="ride">校园拼车互助</option>
+              <option value="lost">失物招领</option>
+            </select>
+          </label>
+          <label>
+            模糊需求描述
+            <textarea id="requirement" rows="8">我想做一个校园生活服务小程序，包含闲置交易、求购、拼车、失物招领、消息通知和校园认证功能，方便同学在校内发布信息和互相帮助。</textarea>
+          </label>
+          <div class="button-row">
+            <button id="generateBtn">生成分析结果</button>
+            <button class="secondary" id="exportBtn">导出 Markdown</button>
+          </div>
+        </aside>
+
+        <section class="panel output-panel">
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-target="modules">功能模块</button>
+            <button class="tab" data-target="sop">开发 SOP</button>
+            <button class="tab" data-target="tests">测试清单</button>
+            <button class="tab" data-target="prompt">Prompt</button>
+            <button class="tab" data-target="resume">简历描述</button>
+          </div>
+
+          <article id="modules" class="tab-panel active"></article>
+          <article id="sop" class="tab-panel"></article>
+          <article id="tests" class="tab-panel"></article>
+          <article id="prompt" class="tab-panel"></article>
+          <article id="resume" class="tab-panel"></article>
+        </section>
+      </section>
+    </main>
+
+    <script src="./assets/app.js"></script>
+  </body>
+</html>
